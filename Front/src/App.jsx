@@ -8,23 +8,23 @@ export default function App(){
     const [isLoading, setIsLoading] = useState(false)
     const panelRef = useRef(null)
 
-    const wsRef = useRef(null)                  // WebSocket 實例
-    const pendingAssistantId = useRef(null)     // 正在填充的 assistant 訊息 id
-    const reconnectAttempts = useRef(0)         // 重連嘗試次數
+    const wsRef = useRef(null)
+    const pendingAssistantId = useRef(null)
+    const reconnectAttempts = useRef(0)
     const heartbeatRef = useRef({ timer: null, missed: 0 })
+    const bufferRef = useRef('')           // accumulate small deltas
+    const flushTimerRef = useRef(null)
     const NEXT_ID = () => Date.now() + Math.floor(Math.random() * 1000)
 
-    // 自動滾到底
+    // auto-scroll
     useEffect(() => {
         if (panelRef.current) panelRef.current.scrollTop = panelRef.current.scrollHeight
     }, [messages])
 
-    // 組出 ws url（根據當前協議切換 ws/wss）
-    const wsUrl = (window.location.protocol === 'https:' ? 'wss' : 'ws') + '://localhost:8000/ws/chat'
+    // build ws url dynamically (supports deployed host + wss)
+    const wsUrl = (window.location.protocol === 'https:' ? 'wss' : 'ws') + '://127.0.0.1:8000/ws/chat'
 
-    // 建立或重建 WebSocket
     function connectWs(url = wsUrl) {
-        // 若已有連線且正在連或已開啟，則跳過
         const existing = wsRef.current
         if (existing && (existing.readyState === WebSocket.OPEN || existing.readyState === WebSocket.CONNECTING)) return
 
@@ -33,17 +33,14 @@ export default function App(){
             wsRef.current = ws
 
             ws.onopen = () => {
-                console.log('[ws] open')
                 reconnectAttempts.current = 0
                 startHeartbeat()
             }
 
             ws.onmessage = (evt) => {
-                // 嘗試解析 JSON，若為 ping/pong 則處理心跳
                 try {
                     const payload = JSON.parse(evt.data)
                     if (payload && payload.type === 'pong') {
-                        // 收到 pong，重置 missed 計數
                         heartbeatRef.current.missed = 0
                         return
                     }
@@ -54,9 +51,7 @@ export default function App(){
             }
 
             ws.onclose = (ev) => {
-                console.log('[ws] closed', ev)
                 stopHeartbeat()
-                // 若不是主動關閉，排程重連
                 if (!ev.wasClean) scheduleReconnect(url)
             }
 
@@ -69,7 +64,6 @@ export default function App(){
         }
     }
 
-    // 等待 WebSocket 進入 OPEN 狀態（timeout ms）
     function waitForWsOpen(ws, timeout = 3000) {
         return new Promise((resolve, reject) => {
             if (!ws) return reject(new Error('No WebSocket'))
@@ -90,7 +84,6 @@ export default function App(){
         })
     }
 
-    // 心跳機制（每 20s 發 ping，若三次沒回 pong 則強制重連）
     function startHeartbeat() {
         stopHeartbeat()
         heartbeatRef.current.missed = 0
@@ -98,11 +91,9 @@ export default function App(){
             const ws = wsRef.current
             if (!ws || ws.readyState !== WebSocket.OPEN) return
             try {
-                // 送 ping；後端若不處理 ping 可忽略
                 ws.send(JSON.stringify({ type: 'ping' }))
                 heartbeatRef.current.missed += 1
                 if (heartbeatRef.current.missed > 2) {
-                    console.warn('[ws] missed pong threshold, closing to trigger reconnect')
                     ws.close()
                 }
             } catch (e) {
@@ -119,33 +110,101 @@ export default function App(){
         heartbeatRef.current.missed = 0
     }
 
-    // 指數退避重連
     function scheduleReconnect(url = wsUrl) {
         reconnectAttempts.current = Math.min(10, reconnectAttempts.current + 1)
         const attempt = reconnectAttempts.current
         const delay = Math.min(30000, 200 * 2 ** attempt)
-        console.log(`[ws] schedule reconnect attempt ${attempt} in ${delay}ms`)
         setTimeout(() => connectWs(url), delay)
     }
 
-    // 處理後端 payload（delta/done/error）
+    // Flush bufferRef into the current pending assistant message
+    function flushBufferToMessage() {
+        const text = bufferRef.current
+        if (!text) return
+        bufferRef.current = ''
+        const aid = pendingAssistantId.current
+        if (!aid) {
+            const newId = NEXT_ID()
+            pendingAssistantId.current = newId
+            setMessages(prev => [...prev, { id: newId, role: 'assistant', text }])
+            return
+        }
+        setMessages(prev => prev.map(m => m.id === aid ? { ...m, text: m.text + text } : m))
+    }
+
+    // start a periodic flush when streaming
+    function ensureFlushTimer() {
+        if (flushTimerRef.current) return
+        flushTimerRef.current = setInterval(() => {
+            flushBufferToMessage()
+        }, 80) // 80ms is a good tradeoff; adjust 40-150ms as needed
+    }
+
+    function clearFlushTimer() {
+        if (flushTimerRef.current) {
+            clearInterval(flushTimerRef.current)
+            flushTimerRef.current = null
+        }
+    }
+
+    // unify incoming payload to a text delta
+    function extractDeltaText(payload) {
+        if (!payload || typeof payload !== 'object') return ''
+        // common fields: text, response, response_text, output, content
+        const candidates = [
+            payload.text,
+            payload.response,
+            payload.response_text,
+            payload.output,
+            payload.content
+        ]
+        for (const v of candidates) {
+            if (typeof v === 'string' && v.length > 0) return v
+        }
+        // some Ollama emits partial thinking strings in "thinking"
+        if (typeof payload.thinking === 'string' && payload.thinking.trim() !== '') {
+            return '' // ignore thinking if you don't want to surface it; or return payload.thinking
+        }
+        return ''
+    }
+
     function handleWsPayload(payload) {
         if (!payload || typeof payload !== 'object') return
         if (payload.type === 'delta') {
-            const aid = pendingAssistantId.current
-            if (!aid) {
-                const newId = NEXT_ID()
-                pendingAssistantId.current = newId
-                setMessages(prev => [...prev, { id: newId, role: 'assistant', text: payload.text || '' }])
-                return
+            // if backend already wraps as delta, use that
+            const delta = payload.text || ''
+            bufferRef.current += delta
+            ensureFlushTimer()
+            return
+        }
+
+        // if backend sends raw chunk JSON lines (no type), handle them:
+        const text = extractDeltaText(payload)
+        if (text) {
+            bufferRef.current += text
+            ensureFlushTimer()
+            // if payload.done === true then flush and finish
+            if (payload.done === true) {
+                flushBufferToMessage()
+                pendingAssistantId.current = null
+                setIsLoading(false)
+                clearFlushTimer()
             }
-            setMessages(prev => prev.map(m => m.id === aid ? { ...m, text: m.text + (payload.text || '') } : m))
-        } else if (payload.type === 'done') {
+            return
+        }
+
+        // explicit done / error handling
+        if (payload.type === 'done' || payload.done === true) {
+            flushBufferToMessage()
             pendingAssistantId.current = null
             setIsLoading(false)
-        } else if (payload.type === 'error') {
-            const aid = pendingAssistantId.current
+            clearFlushTimer()
+            return
+        }
+
+        if (payload.type === 'error') {
             const errText = payload.error || '伺服器錯誤'
+            const aid = pendingAssistantId.current
             if (aid) {
                 setMessages(prev => prev.map(m => m.id === aid ? { ...m, text: errText } : m))
             } else {
@@ -153,20 +212,18 @@ export default function App(){
             }
             pendingAssistantId.current = null
             setIsLoading(false)
-        } else {
-            // 非標準訊息（例如後端回傳完整結構）
-            console.warn('[ws] unknown payload', payload)
+            clearFlushTimer()
+            return
         }
+
+        // fallback: unknown payload
+        console.warn('[ws] unknown payload', payload)
     }
 
-    // 傳送訊息（建立 init payload）
     async function sendMessage() {
         const trimmed = input.trim()
         if (!trimmed) return
-
-        // 若已有未完成的 assistant 回覆，避免覆寫（可選行為）
         if (pendingAssistantId.current) {
-            // 你可以選擇排隊或取消前一個，這裏簡單阻止並顯示訊息
             setMessages(prev => [...prev, { id: NEXT_ID(), role: 'assistant', text: '請等待前一則回覆完畢' }])
             return
         }
@@ -176,51 +233,45 @@ export default function App(){
         setInput('')
         setIsLoading(true)
 
-        // 插入空的 assistant 訊息，等待 stream 填充
         const assistantId = NEXT_ID()
         pendingAssistantId.current = assistantId
         setMessages(prev => [...prev, { id: assistantId, role: 'assistant', text: '' }])
 
-        // 確保 WebSocket 已連上
         try {
             if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
                 connectWs(wsUrl)
                 await waitForWsOpen(wsRef.current, 5000)
             }
         } catch (e) {
-            console.error('[ws] not connected', e)
             setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, text: '無法連線，請稍後再試。' } : m))
             pendingAssistantId.current = null
             setIsLoading(false)
             return
         }
 
-        // 發送 init payload（一次）
         try {
             const ws = wsRef.current
             const payload = {
                 model: 'gpt-oss:20b',
-                messages: [{ role: 'user', content: trimmed }],
-                // x_api_key: 'your-api-key-if-needed'
+                messages: [{ role: 'user', content: trimmed }]
             }
             ws.send(JSON.stringify(payload))
-            // 後端會開始逐段回傳，handleWsPayload 處理追加
+            // backend will stream; bufferRef + flushTimer handle append
         } catch (err) {
-            console.error('[ws] send error', err)
             setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, text: '送出失敗，請稍後再試。' } : m))
             pendingAssistantId.current = null
             setIsLoading(false)
+            clearFlushTimer()
         }
     }
 
-    // 初次掛載建立連線
+    // connect on mount; cleanup on unmount
     useEffect(() => {
         connectWs(wsUrl)
         return () => {
-            try {
-                if (wsRef.current) wsRef.current.close()
-            } catch (e) {}
+            try { if (wsRef.current) wsRef.current.close() } catch(e){}
             stopHeartbeat()
+            clearFlushTimer()
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
@@ -265,22 +316,21 @@ export default function App(){
                         if (!isLoading && input.trim()) sendMessage()
                     }}
                 >
-                    <textarea
-                        className="input"
-                        value={input}
-                        onChange={e => setInput(e.target.value)}
-                        placeholder="請輸入您的問題..."
-                        disabled={isLoading}
-                        aria-label="輸入訊息"
-                        rows={3} // 可調整初始高度
-                        onKeyDown={e => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();           // 阻止換行
-                                if (!isLoading && input.trim()) sendMessage();
-                            }
-                            // 若 e.shiftKey 為 true，保留預設行為（插入換行）
-                        }}
-                    />
+          <textarea
+              className="input"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              placeholder="請輸入您的問題..."
+              disabled={isLoading}
+              aria-label="輸入訊息"
+              rows={3}
+              onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      if (!isLoading && input.trim()) sendMessage()
+                  }
+              }}
+          />
 
                     <button className="btn-send" type="submit" disabled={isLoading || !input.trim()}>
                         {isLoading ? '傳送中...' : '發送'}
