@@ -1,0 +1,289 @@
+[
+  {
+    "instruction": "維修後資料不見",
+    "input": "",
+    "output": " 不好意思，依照我們的服務政策，我們會於維修完畢後將手機恢復到原廠設定，若有影響還請見諒 "
+  },
+  {
+    "instruction": "應用程式圖標下的小字不見",
+    "input": "",
+    "output": "請進入手機的設定->主螢幕->應用程式標籤幫我打開就可以了"
+  },
+   {
+    "instruction": "同步手機資料至平板，提示需要客服提供6位數代碼",
+    "input": "",
+    "output": " 我們產品進行同步時不需要客服提供代碼，只需請您在兩設備之間打開Smart Switch依照上面的指引進行同步即可 "
+  },
+  {
+    "instruction": "雙sim卡有一卡讀不到",
+    "input": "",
+    "output": " 請您將手機重設網路設定，請至設定->一般管理->重設->重設網路設定進行重設 "
+  },
+   {
+    "instruction": "雙sim卡有一卡讀不到，且還原過網路設定依然無法讀到 ",
+    "input": "",
+    "output": " 請您洽詢該門號的電信公司更換sim卡，若更換完還是無法解決請送至鄰近的服務中心 "
+  },
+   {
+    "instruction": " 服務中心答應今天回復維修報價但是尚未回覆，詢問服務中心電話 ",
+    "input": "",
+    "output": " 不好意思造成您的困擾，如果您已經有維修單了可以直接撥打右上角的電話號碼，如果無維修單我們可以幫您聯繫 "
+  },
+   {
+    "instruction": "還原手機至原廠設定需要信箱認證",
+    "input": "",
+    "output": " 請您在進入該畫面時前往該手機登入之帳號之註冊信箱查看驗證碼並輸入即可 "
+  },
+   {
+    "instruction": "手機容量不足",
+    "input": "",
+    "output": " 請依您的實際需求刪除手機的內部資料以獲得儲存空間，或可以考慮我們出的新產品 "
+  },
+    {
+    "instruction": "花蓮服務中心地址",
+    "input": "",
+    "output": " https://maps.app.goo.gl/bj3PW1iqFyeonVrc8 /n這是我們的服務中心地址 服務時間為週一至週六早上11點至晚上8點 "
+  },
+   {
+    "instruction": "需要預約維修",
+    "input": "",
+    "output": " 好的，請提供您的姓名 電話 手機型號 故障原因，我們會為您進行預約 "
+  },
+   {
+    "instruction": "抖音付款時出現--已啟用嚴格篩選模式，無法付款",
+    "input": "",
+    "output": " 請洽詢抖音客服 "
+  },
+   {
+    "instruction": " 我在蝦皮商城訂購的商品因你們價格誤植被直接取消訂單 ",
+    "input": "",
+    "output": " 不好意思造成您的困擾，我們已經知悉這個狀況，後續會再由主管回覆您 "
+  },
+   {
+    "instruction": "簡訊驗證碼無法自動填寫",
+    "input": "",
+    "output": " 我們並沒有提供這樣的功能 "
+  },
+   {
+    "instruction": " 消費後沒有收到rewards點數回饋 ",
+    "input": "",
+    "output": " 不好意思，請提供您的消費資料讓我們可以幫您補登，非常抱歉造成您的困擾 "
+  },
+   {
+    "instruction": " 手機會一直跳出廣告 ",
+    "input": "",
+    "output": " 我們將為您轉接至真人客服以遠端的方式進行處理 "
+  },
+   {
+    "instruction": "電池膨脹+背板掀開詢問維修報價",
+    "input": "",
+    "output": " 維修報價會以服務中心現場報價為主，建議直接前往進行維修 "
+  },
+   {
+    "instruction": "螢幕白線",
+    "input": "",
+    "output": " 請嘗試重新開機，若還是存在建議前往鄰近的服務中心進行維修 "
+  },
+   {
+    "instruction": " wallet 更新後悠遊卡綁定的門禁無法使用 ",
+    "input": "",
+    "output": " 請您確認此悠遊卡是否可以正常使用，若正常請至管理單位重新登記 "
+  },
+   {
+    "instruction": " 手機資料如何轉移 ",
+    "input": "",
+    "output": " 可直接使用Smart Switch根據指引進行資料轉移 "
+  },
+   {
+    "instruction": " 服務中心是否可以維修背蓋脫落以及費用是多少",
+    "input": "",
+    "output": " 可以直接前往鄰近的服務中心進行維修，維修費會由現場工程師檢測報價 "
+  },
+   {
+    "instruction": " Fold6內螢幕保護貼價格 ",
+    "input": "",
+    "output": " 保護貼的價格為850元 "
+  },
+   {
+    "instruction": "更換預約取貨時間",
+    "input": "",
+    "output": " 請直接到官網購買頁面進行更換即可 "
+  },
+   {
+    "instruction": "網路無法使用",
+    "input": "",
+    "output": " 請重置網路設定後重新開機觀察 "
+  },
+   {
+    "instruction": " 新的手機已經創建新的悠遊卡，舊手機無法進行轉移 ",
+    "input": "",
+    "output":"https://www.samsung.com/tw/support/mobile-devices/how-to-back-up-the-easycard-in-wallet \n 請依照上述指引進行轉移 "
+  },
+   {
+    "instruction": " 流理台維修 ",
+    "input": "",
+    "output": " 不好意思，我們並沒有這種產品 "
+  },
+   {
+    "instruction": " 手機盒裝配件內沒有充電頭 ",
+    "input": "",
+    "output": " 不好意思，為響應環保，現在的手機不再提供充電頭作為盒裝配件，若有需求需另外購買 "
+  },
+   {
+    "instruction": " 摺疊機換保護貼時間 ",
+    "input": "",
+    "output": " 會以現場案件數量，工程師作業時間而定 "
+  },
+   {
+    "instruction": "無法開啟基地台",
+    "input": "",
+    "output": " 請確認數據節省工具已經關閉，若關閉還是無法開啟請重設網路設定 "
+  },
+   {
+    "instruction": " 如何退貨 ",
+    "input": "",
+    "output": " 請提供您的訂單編號後續會由專員為您服務 "
+  },
+   {
+    "instruction": " 查詢維修進度 ",
+    "input": "",
+    "output": " 好的請提供您的姓名 電話 維修單號，會再有專員聯繫您  "
+  },
+   {
+    "instruction": "拍照模糊",
+    "input": "",
+    "output": " 請確認鏡頭是否乾淨，若還是模糊請重置相機設定 "
+  },
+   {
+    "instruction": " 背蓋脫落是否可以前往板橋服務中心維修 ",
+    "input": "",
+    "output": " 可以直接前往，地址如下\n https://maps.app.goo.gl/48NSzDYXRRG1YEES6 \n服務時間為每天的早上11點到晚上8點 "
+  },
+   {
+    "instruction": "無法充電",
+    "input": "",
+    "output": " 請直接前往鄰近的維修中心，維修前請先將資料進行備份 "
+  },
+   {
+    "instruction": "開啟120hz會有綠線 關閉後就正常",
+    "input": "",
+    "output": "請您前往鄰近的服務中心取得協助"
+  },
+   {
+    "instruction": "google語音助理顯示該帳號無法使用",
+    "input": "",
+    "output": "請洽詢google客服詢問該帳號問題"
+  },
+   {
+    "instruction": "Smart Tutor有通知出現是否需要管他",
+    "input": "",
+    "output": "此為我們客服中心的遠端工具，若後續產品使用上有問題可以請求客服使用遠端的方式為您排除問題，若有出現通知無需理會"
+  },
+   {
+    "instruction": "桌面應用程式不見",
+    "input": "",
+    "output": "請您幫我從桌面螢幕從下往上滑->在應用程式螢幕中尋找您的App->長按新增至主螢幕即可"
+  },
+   {
+    "instruction": "S24 Utrla 是否有支援esim",
+    "input": "",
+    "output": "無支援"
+  },
+   {
+    "instruction": "電池耗電異常",
+    "input": "",
+    "output": "請您前往鄰近的服務中心進行維修"
+  },
+   {
+    "instruction": "如何掃描文件",
+    "input": "",
+    "output": "請您根據以下指引進行操作\n https://www.samsung.com/tw/support/mobile-devices/after-upgrading-to-one-ui-60-the-scan-file-increases-removal-of-excess-objects/"
+  },
+   {
+    "instruction": "綠線免費維修",
+    "input": "",
+    "output": "根據保固政策，是否符合保內免費維修，需先前往服務中心請工程是進行檢測，若已超過保固期限會有維修費用的產生"
+  },
+   {
+    "instruction": "螢幕無法旋轉",
+    "input": "",
+    "output": "請確認螢幕旋轉功能是否開啟"
+  },
+   {
+    "instruction": "監視器如何連線手機",
+    "input": "",
+    "output": "請您洽詢監視器廠商"
+  },
+   {
+    "instruction": "螢幕破裂價格",
+    "input": "",
+    "output": "以下為官網參考價格\nhttps://www.samsung.com/tw/support/screen-repair/ \n實際價格請以現場工程是檢測報價為主"
+  },
+   {
+    "instruction": "刪除記憶卡的資料沒有出現在垃圾桶中",
+    "input": "",
+    "output": "從記憶卡刪除的資料會直接被刪除不會進入垃圾桶"
+  },
+   {
+    "instruction": "手機被盜",
+    "input": "",
+    "output": "請先保留被盜的證據並報警，若有需要完成資料搜集後請前往鄰近的服務中心進行重灌"
+  },
+   {
+    "instruction": "更改訂單內容",
+    "input": "",
+    "output": "了解，請您留下您的姓名 電話 訂單編號 後續會再有專人與您聯繫"
+  },
+   {
+    "instruction": "line換行鍵變發送",
+    "input": "",
+    "output": "請詢問Line客服"
+  },
+   {
+    "instruction": "收不到驗證碼",
+    "input": "",
+    "output": "請您重設手機網路設定，若還是無法接收請開啟安全模式進行接收，還是接收不到請洽詢電信公司"
+  },
+   {
+    "instruction": "鏡頭內起霧是否可送往服務中心",
+    "input": "",
+    "output": "可以，請您將手機送往鄰近的服務中心進行維修"
+  },
+   {
+    "instruction": "電話客服服務時間",
+    "input": "",
+    "output": "電話的客服時間為每天早上9點到晚上7點，文字客服為24小時都有服務"
+  },
+   {
+    "instruction": "後鏡頭破裂",
+    "input": "",
+    "output": "請您前往鄰近的服務中心進行維修"
+  },
+   {
+    "instruction": "舊換新的抵免價格",
+    "input": "",
+    "output": "請依以下網站進行估價\nhttps://sesmember.twsamsungcampaign.com/tradein_price.aspx#/bonus-calculator\n請注意 折扣金額會以檢測結果報價為主"
+  },
+   {
+    "instruction": "Fold5內螢幕保貼價格",
+    "input": "",
+    "output": "目前的價格為850元"
+  },
+   {
+    "instruction": "Tab S10 FE+無法開機",
+    "input": "",
+    "output": "請您將平板接上電源後按住平板的電源鍵+音量下鍵持續7~10秒，若依舊無法開機請前往鄰近的服務中心進行協助"
+  },
+   {
+    "instruction": "Samsung Care+是否可以線上投保",
+    "input": "",
+    "output": "裝置購買14天內可於設定->關於本機->Samsung Care+投保 進行投保"
+  },
+   {
+    "instruction": "他牌電視無法使用SmartView投影手機畫面到電視",
+    "input": "",
+    "output": "此功能保證三星手機搭配三星電視可以使用，他牌電視需詢問該電視製造商是否支援此功能"
+  }
+
+
+]

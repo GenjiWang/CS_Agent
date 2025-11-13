@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>客服聊天機器人</title>
+    <script type="module" src="/@vite/client"></script>
+</head>
+<body>
+<!-- 集中放置所有重用的 SVG defs（放在 body 開頭、#root 之前） -->
+<svg width="0" height="0" style="position:absolute;left:-9999px;visibility:hidden" aria-hidden="true">
+    <defs>
+        <!-- Card continuous-like corner (比例方式，objectBoundingBox) -->
+        <mask id="mask-rounded-card" maskUnits="objectBoundingBox" maskContentUnits="objectBoundingBox">
+            <rect x="0" y="0" width="1" height="1" rx="0.12" ry="0.12" fill="white" />
+        </mask>
+
+        <!-- Smaller rounded mask variant (比例方式) -->
+        <mask id="mask-rounded-r" maskUnits="objectBoundingBox" maskContentUnits="objectBoundingBox">
+            <rect x="0" y="0" width="1" height="1" rx="0.09" ry="0.09" fill="white"/>
+        </mask>
+    </defs>
+</svg>
+
+<div id="root">
+    <!-- React 會在這裡掛載你的 header/chat/composer -->
+    <!-- 方案1：header 自成卡片，直接在 CSS 控制 margin-top 與 border-radius -->
+    <header class="header">
+        <div class="container">
+            <div class="title-card">
+                <h1>智慧聊天機器人</h1>
+                <span class="sub">建立 Ollama 的智慧聊天系統</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="chat-area">
+        <div class="inner">
+            <div class="chat-panel">
+                <!-- 訊息泡泡會由 React 渲染 -->
+            </div>
+        </div>
+    </main>
+
+    <footer class="composer">
+        <!-- 輸入列由 React 渲染 -->
+    </footer>
+</div>
+
+<!-- 你的 app 入口腳本 -->
+<script type="module" src="/src/main.jsx"></script>
+</body>
+</html>
