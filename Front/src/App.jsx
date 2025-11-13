@@ -265,21 +265,23 @@ export default function App(){
                         if (!isLoading && input.trim()) sendMessage()
                     }}
                 >
-                    <input
+                    <textarea
                         className="input"
-                        type="text"
                         value={input}
                         onChange={e => setInput(e.target.value)}
                         placeholder="請輸入您的問題..."
                         disabled={isLoading}
                         aria-label="輸入訊息"
+                        rows={3} // 可調整初始高度
                         onKeyDown={e => {
                             if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault()
-                                if (!isLoading && input.trim()) sendMessage()
+                                e.preventDefault();           // 阻止換行
+                                if (!isLoading && input.trim()) sendMessage();
                             }
+                            // 若 e.shiftKey 為 true，保留預設行為（插入換行）
                         }}
                     />
+
                     <button className="btn-send" type="submit" disabled={isLoading || !input.trim()}>
                         {isLoading ? '傳送中...' : '發送'}
                     </button>
