@@ -1,6 +1,59 @@
 import React, { useState, useRef, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import rehypeSanitize from 'rehype-sanitize'
+import { defaultSchema } from 'hast-util-sanitize'
+import DOMPurify from 'dompurify'
+import 'katex/dist/katex.min.css' // KaTeX 樣式
 
-export default function App(){
+// 擴充 sanitize schema，允許 KaTeX 會用到的 class 與 style
+const katexAllowed = {
+    ...defaultSchema,
+    attributes: {
+        ...defaultSchema.attributes,
+        // 允許 span/div 的 class 與 style（KaTeX 會產生許多 span）
+        span: [
+            ...(defaultSchema.attributes && defaultSchema.attributes.span ? defaultSchema.attributes.span : []),
+            'class',
+            'className',
+            'style'
+        ],
+        div: [
+            ...(defaultSchema.attributes && defaultSchema.attributes.div ? defaultSchema.attributes.div : []),
+            'class',
+            'className',
+            'style'
+        ],
+        // 若 KaTeX 生成 MathML，允許少量必要屬性
+        math: ['xmlns'],
+        annotation: ['encoding']
+    }
+}
+
+/**
+ * MarkdownViewer
+ * - 支援 GFM 與 LaTeX（remark-math + rehype-katex）
+ * - 先用 DOMPurify 清理輸入 markdown（避免惡意 HTML），再由 rehypeSanitize（katexAllowed）保護 KaTeX 生成的 HTML
+ */
+function MarkdownViewer({ source }) {
+    // source 很可能來自後端流式累積；如果來源是未信任的，先用 DOMPurify sanitize
+    const safeSource = typeof source === 'string' ? DOMPurify.sanitize(source) : source
+
+    return (
+        <ReactMarkdown
+            children={safeSource}
+            remarkPlugins={[remarkGfm, remarkMath]}
+            rehypePlugins={[
+                rehypeKatex,                 // 先把 LaTeX 轉成 HTML
+                [rehypeSanitize, katexAllowed] // 然後以擴充過的 schema 做 sanitize（允許 KaTeX 標籤/屬性）
+            ]}
+        />
+    )
+}
+
+export default function App() {
     const [messages, setMessages] = useState([
         { id: 1, role: 'assistant', text: '歡迎！請輸入你的問題。' }
     ])
@@ -21,7 +74,7 @@ export default function App(){
         if (panelRef.current) panelRef.current.scrollTop = panelRef.current.scrollHeight
     }, [messages])
 
-    // build ws url dynamically (supports deployed host + wss)
+    // build ws url (local dev)
     const wsUrl = (window.location.protocol === 'https:' ? 'wss' : 'ws') + '://127.0.0.1:8000/ws/chat'
 
     function connectWs(url = wsUrl) {
@@ -137,7 +190,7 @@ export default function App(){
         if (flushTimerRef.current) return
         flushTimerRef.current = setInterval(() => {
             flushBufferToMessage()
-        }, 80) // 80ms is a good tradeoff; adjust 40-150ms as needed
+        }, 80)
     }
 
     function clearFlushTimer() {
@@ -150,7 +203,6 @@ export default function App(){
     // unify incoming payload to a text delta
     function extractDeltaText(payload) {
         if (!payload || typeof payload !== 'object') return ''
-        // common fields: text, response, response_text, output, content
         const candidates = [
             payload.text,
             payload.response,
@@ -161,9 +213,8 @@ export default function App(){
         for (const v of candidates) {
             if (typeof v === 'string' && v.length > 0) return v
         }
-        // some Ollama emits partial thinking strings in "thinking"
         if (typeof payload.thinking === 'string' && payload.thinking.trim() !== '') {
-            return '' // ignore thinking if you don't want to surface it; or return payload.thinking
+            return ''
         }
         return ''
     }
@@ -171,19 +222,16 @@ export default function App(){
     function handleWsPayload(payload) {
         if (!payload || typeof payload !== 'object') return
         if (payload.type === 'delta') {
-            // if backend already wraps as delta, use that
             const delta = payload.text || ''
             bufferRef.current += delta
             ensureFlushTimer()
             return
         }
 
-        // if backend sends raw chunk JSON lines (no type), handle them:
         const text = extractDeltaText(payload)
         if (text) {
             bufferRef.current += text
             ensureFlushTimer()
-            // if payload.done === true then flush and finish
             if (payload.done === true) {
                 flushBufferToMessage()
                 pendingAssistantId.current = null
@@ -193,7 +241,6 @@ export default function App(){
             return
         }
 
-        // explicit done / error handling
         if (payload.type === 'done' || payload.done === true) {
             flushBufferToMessage()
             pendingAssistantId.current = null
@@ -216,7 +263,6 @@ export default function App(){
             return
         }
 
-        // fallback: unknown payload
         console.warn('[ws] unknown payload', payload)
     }
 
@@ -256,7 +302,6 @@ export default function App(){
                 messages: [{ role: 'user', content: trimmed }]
             }
             ws.send(JSON.stringify(payload))
-            // backend will stream; bufferRef + flushTimer handle append
         } catch (err) {
             setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, text: '送出失敗，請稍後再試。' } : m))
             pendingAssistantId.current = null
@@ -273,7 +318,6 @@ export default function App(){
             stopHeartbeat()
             clearFlushTimer()
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     return (
@@ -299,7 +343,11 @@ export default function App(){
                                     className={`msg-row ${msg.role === 'user' ? 'user' : 'assistant'}`}
                                 >
                                     <div className={`msg ${msg.role === 'user' ? 'user' : 'assistant'}`}>
-                                        {msg.text}
+                                        {msg.role === 'assistant' ? (
+                                            <MarkdownViewer source={msg.text} />
+                                        ) : (
+                                            msg.text
+                                        )}
                                     </div>
                                 </div>
                             ))
