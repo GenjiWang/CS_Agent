@@ -1,24 +1,37 @@
-import os
+"""
+Ollama streaming service for handling chat completions.
+Supports conversation history and streaming responses.
+"""
 import json
+import logging
 from typing import Callable, Optional
 import httpx
 
-# 設定與環境變數
-MODEL = os.environ.get("OLLAMA_MODEL", "gpt-oss:20b")
-BASE = os.environ.get("OLLAMA_URL") or "http://127.0.0.1:8008"
-ENDPOINT = BASE.rstrip("/") + "/api/generate"
-DEBUG = os.environ.get("OLLAMA_DEBUG") == "1"
+from ..config import settings
+
+# Configure logger
+logger = logging.getLogger(__name__)
+
+# Constants
+ENDPOINT = settings.ollama_url.rstrip("/") + "/api/generate"
+CHUNK_SIZE = 80  # Size of text chunks for non-streaming fallback
 
 
-def _debug(*args):
-    """當 DEBUG 為 True 時列印診斷訊息（僅 server 端 log，不會送給前端）"""
-    if DEBUG:
-        print("[streamer DEBUG]", *args)
+def _debug(*args) -> None:
+    """Log diagnostic messages when DEBUG is enabled."""
+    if settings.ollama_debug:
+        logger.debug(" ".join(str(arg) for arg in args))
 
 
 def _extract_text_from_part(part: dict) -> Optional[str]:
     """
-    從模型回傳的 JSON 片段中抽出最有意義、對使用者可見的文字欄位。
+    Extract meaningful text from model response JSON.
+    
+    Args:
+        part: Dictionary containing model response data
+        
+    Returns:
+        Extracted text string or None if no text found
     """
     for key in ("response", "response_text", "text", "output", "content"):
         v = part.get(key)
@@ -42,8 +55,16 @@ def _extract_text_from_part(part: dict) -> Optional[str]:
     return None
 
 
-def _build_context_from_history(history: list) -> str:
-    """將對話歷史轉換為 Ollama prompt 格式"""
+def _build_context_from_history(history: list[dict]) -> str:
+    """
+    Convert conversation history to Ollama prompt format.
+    
+    Args:
+        history: List of message dictionaries with 'role' and 'content' keys
+        
+    Returns:
+        Formatted prompt string with conversation history
+    """
     context_parts = []
     for msg in history:
         role = msg.get("role", "user")
@@ -59,16 +80,21 @@ def request_stream_sync(
         user_msg: str,
         model: Optional[str],
         on_chunk: Callable[[dict], None],
-        conversation_history: Optional[list] = None
+        conversation_history: Optional[list[dict]] = None
 ) -> None:
     """
-    核心同步串流函式（支援對話記憶）
-    新增參數：
-      - conversation_history: 對話歷史，格式為 [{"role": "user/assistant", "content": "..."}]
+    Core synchronous streaming function with conversation memory support.
+    
+    Args:
+        user_msg: The user's message to send to the model
+        model: Model name to use (uses default if None)
+        on_chunk: Callback function to handle response chunks
+        conversation_history: Optional list of previous conversation messages
+                            Format: [{"role": "user/assistant", "content": "..."}]
     """
-    m = model or MODEL
+    m = model or settings.ollama_model
 
-    # 構建包含對話歷史的 prompt
+    # Build prompt with conversation history
     if conversation_history:
         context = _build_context_from_history(conversation_history)
         full_prompt = f"{context}\nUser: {user_msg}\nAssistant:"
@@ -78,8 +104,14 @@ def request_stream_sync(
     payload = {"model": m, "prompt": full_prompt, "stream": True}
 
     try:
-        client = httpx.Client(timeout=None)
+        client = httpx.Client(
+            timeout=httpx.Timeout(
+                timeout=settings.request_timeout,
+                connect=settings.connect_timeout
+            )
+        )
     except Exception as e:
+        logger.error(f"Failed to create HTTP client: {e}")
         on_chunk({"type": "error", "error": f"建立 HTTP 客戶端失敗：{e}"})
         return
 
@@ -87,7 +119,9 @@ def request_stream_sync(
         with client.stream("POST", ENDPOINT, json=payload,
                            headers={"Accept": "text/event-stream, application/json"}) as resp:
             if resp.status_code != 200:
-                on_chunk({"type": "error", "error": f"HTTP {resp.status_code}: {resp.text}"})
+                error_msg = f"HTTP {resp.status_code}: {resp.text}"
+                logger.error(f"Stream request failed: {error_msg}")
+                on_chunk({"type": "error", "error": error_msg})
                 return
 
             for raw in resp.iter_lines():
@@ -136,16 +170,24 @@ def request_stream_sync(
             return
 
     except Exception as e:
-        _debug("stream exception:", str(e))
+        logger.warning(f"Stream exception, falling back to non-streaming: {e}")
 
         try:
-            resp2 = client.post(ENDPOINT, json={"model": m, "prompt": full_prompt, "stream": False}, timeout=30)
+            resp2 = client.post(
+                ENDPOINT,
+                json={"model": m, "prompt": full_prompt, "stream": False},
+                timeout=settings.request_timeout
+            )
         except Exception as e2:
-            on_chunk({"type": "error", "error": f"Ollama 連線失敗：{e2}"})
+            error_msg = f"Ollama 連線失敗：{e2}"
+            logger.error(error_msg)
+            on_chunk({"type": "error", "error": error_msg})
             return
 
         if resp2.status_code != 200:
-            on_chunk({"type": "error", "error": f"HTTP {resp2.status_code}: {resp2.text}"})
+            error_msg = f"HTTP {resp2.status_code}: {resp2.text}"
+            logger.error(error_msg)
+            on_chunk({"type": "error", "error": error_msg})
             return
 
         try:
@@ -166,8 +208,10 @@ def request_stream_sync(
             on_chunk({"type": "error", "error": "模型回傳但無文字"})
             return
 
-        step = 80
-        for i in range(0, len(text), step):
-            on_chunk({"type": "delta", "text": text[i: i + step]})
+        # Send text in chunks
+        for i in range(0, len(text), CHUNK_SIZE):
+            on_chunk({"type": "delta", "text": text[i: i + CHUNK_SIZE]})
         on_chunk({"type": "done"})
         return
+    finally:
+        client.close()
