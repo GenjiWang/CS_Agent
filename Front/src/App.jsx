@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
@@ -77,7 +77,7 @@ export default function App() {
     // build ws url (local dev)
     const wsUrl = (window.location.protocol === 'https:' ? 'wss' : 'ws') + '://127.0.0.1:8000/ws/chat'
 
-    function connectWs(url = wsUrl) {
+    const connectWs = useCallback((url = wsUrl) => {
         const existing = wsRef.current
         if (existing && (existing.readyState === WebSocket.OPEN || existing.readyState === WebSocket.CONNECTING)) return
 
@@ -115,7 +115,8 @@ export default function App() {
             console.error('[ws] connect failed', e)
             scheduleReconnect(url)
         }
-    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [wsUrl])
 
     function waitForWsOpen(ws, timeout = 3000) {
         return new Promise((resolve, reject) => {
@@ -289,6 +290,8 @@ export default function App() {
                 await waitForWsOpen(wsRef.current, 5000)
             }
         } catch (e) {
+            // Connection error already handled by UI state
+            console.error('WebSocket connection error:', e);
             setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, text: '無法連線，請稍後再試。' } : m))
             pendingAssistantId.current = null
             setIsLoading(false)
@@ -303,6 +306,8 @@ export default function App() {
             }
             ws.send(JSON.stringify(payload))
         } catch (err) {
+            // Send error already handled by UI state
+            console.error('WebSocket send error:', err);
             setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, text: '送出失敗，請稍後再試。' } : m))
             pendingAssistantId.current = null
             setIsLoading(false)
@@ -314,10 +319,16 @@ export default function App() {
     useEffect(() => {
         connectWs(wsUrl)
         return () => {
-            try { if (wsRef.current) wsRef.current.close() } catch(e){}
+            try { 
+                if (wsRef.current) wsRef.current.close() 
+            } catch(e) {
+                // WebSocket cleanup error - can be safely ignored during unmount
+                console.debug('WebSocket cleanup error:', e);
+            }
             stopHeartbeat()
             clearFlushTimer()
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     return (
