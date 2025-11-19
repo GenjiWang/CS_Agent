@@ -146,6 +146,7 @@ python test.py
 ## Development Notes
 
 - The application uses asyncio for concurrent request handling
+- Uses Ollama's `/api/chat` endpoint for native message array support
 - Ollama streaming responses are handled in thread pools to avoid blocking
 - Session management uses TTL cache to prevent memory leaks
 - All configuration is centralized in `config.py` for easy testing and deployment

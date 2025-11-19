@@ -255,6 +255,29 @@ These items were identified but not implemented as they are beyond the scope of 
 5. Performance optimization
 6. CI/CD pipeline
 
+## Additional Improvements (Post-Review)
+
+### Migration to Ollama `/api/chat` Endpoint
+**Date:** 2025-11-19  
+**Rationale:** User feedback to use the more appropriate chat-specific API
+
+**Changes:**
+- Migrated from `/api/generate` to `/api/chat` endpoint
+- Removed manual prompt formatting (`_build_context_from_history`)
+- Now uses native message array format for conversation history
+- Simplified code by leveraging Ollama's built-in chat message handling
+- Updated response parsing to handle `message.content` format
+
+**Benefits:**
+1. **Native message support**: No need to manually format conversation history into prompts
+2. **Better structured**: Message arrays with roles are more maintainable
+3. **Ollama recommended**: `/api/chat` is the recommended endpoint for chat applications
+4. **Cleaner code**: Removed string concatenation and manual prompt building
+
+**Files Changed:**
+- `backend/app/services/streamer.py` - Updated endpoint and message format
+- `backend/README.md` - Updated documentation
+
 ## Conclusion
 
 All high and medium priority backend issues from the code review have been successfully addressed. The backend now follows best practices for:

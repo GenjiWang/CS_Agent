@@ -13,7 +13,7 @@ from ..config import settings
 logger = logging.getLogger(__name__)
 
 # Constants
-ENDPOINT = settings.ollama_url.rstrip("/") + "/api/generate"
+ENDPOINT = settings.ollama_url.rstrip("/") + "/api/chat"
 CHUNK_SIZE = 80  # Size of text chunks for non-streaming fallback
 
 
@@ -25,7 +25,7 @@ def _debug(*args) -> None:
 
 def _extract_text_from_part(part: dict) -> Optional[str]:
     """
-    Extract meaningful text from model response JSON.
+    Extract meaningful text from Ollama chat API response JSON.
     
     Args:
         part: Dictionary containing model response data
@@ -33,11 +33,20 @@ def _extract_text_from_part(part: dict) -> Optional[str]:
     Returns:
         Extracted text string or None if no text found
     """
+    # For /api/chat endpoint, check message.content first
+    message = part.get("message")
+    if isinstance(message, dict):
+        content = message.get("content")
+        if isinstance(content, str) and content != "":
+            return content
+    
+    # Fallback to other possible fields
     for key in ("response", "response_text", "text", "output", "content"):
         v = part.get(key)
         if isinstance(v, str) and v != "":
             return v
 
+    # Handle OpenAI-style response format (for compatibility)
     choices = part.get("choices")
     if isinstance(choices, list):
         for c in choices:
@@ -55,27 +64,6 @@ def _extract_text_from_part(part: dict) -> Optional[str]:
     return None
 
 
-def _build_context_from_history(history: list[dict]) -> str:
-    """
-    Convert conversation history to Ollama prompt format.
-    
-    Args:
-        history: List of message dictionaries with 'role' and 'content' keys
-        
-    Returns:
-        Formatted prompt string with conversation history
-    """
-    context_parts = []
-    for msg in history:
-        role = msg.get("role", "user")
-        content = msg.get("content", "")
-        if role == "user":
-            context_parts.append(f"User: {content}")
-        elif role == "assistant":
-            context_parts.append(f"Assistant: {content}")
-    return "\n".join(context_parts)
-
-
 def request_stream_sync(
         user_msg: str,
         model: Optional[str],
@@ -84,6 +72,7 @@ def request_stream_sync(
 ) -> None:
     """
     Core synchronous streaming function with conversation memory support.
+    Uses Ollama's /api/chat endpoint with native message array support.
     
     Args:
         user_msg: The user's message to send to the model
@@ -94,14 +83,13 @@ def request_stream_sync(
     """
     m = model or settings.ollama_model
 
-    # Build prompt with conversation history
+    # Build messages array for /api/chat endpoint
+    messages = []
     if conversation_history:
-        context = _build_context_from_history(conversation_history)
-        full_prompt = f"{context}\nUser: {user_msg}\nAssistant:"
-    else:
-        full_prompt = user_msg
-
-    payload = {"model": m, "prompt": full_prompt, "stream": True}
+        messages.extend(conversation_history)
+    messages.append({"role": "user", "content": user_msg})
+    
+    payload = {"model": m, "messages": messages, "stream": True}
 
     try:
         client = httpx.Client(
@@ -175,7 +163,7 @@ def request_stream_sync(
         try:
             resp2 = client.post(
                 ENDPOINT,
-                json={"model": m, "prompt": full_prompt, "stream": False},
+                json={"model": m, "messages": messages, "stream": False},
                 timeout=settings.request_timeout
             )
         except Exception as e2:
@@ -192,13 +180,19 @@ def request_stream_sync(
 
         try:
             j = resp2.json()
-            text = (
+            # For /api/chat, response is in message.content
+            message = j.get("message", {})
+            text = message.get("content") if isinstance(message, dict) else None
+            
+            # Fallback to other fields
+            if not text:
+                text = (
                     j.get("response")
                     or j.get("text")
                     or j.get("output")
                     or j.get("content")
                     or None
-            )
+                )
             if not text:
                 text = json.dumps(j, ensure_ascii=False)
         except Exception:
