@@ -1,7 +1,7 @@
 # test.py
 import httpx, traceback
 
-url = "http://127.0.0.1:8008/api/generate"
+url = "http://127.0.0.1:11434/api/generate"
 payload = {"model":"gpt-oss:20b","prompt":"hello","stream":True}
 
 try:

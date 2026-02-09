@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     
     # Ollama Configuration
     ollama_model: str = "gpt-oss:20b"
-    ollama_url: str = "http://127.0.0.1:8008"
+    ollama_url: str = "http://127.0.0.1:11434"
     ollama_debug: bool = False
     
     # WebSocket Configuration

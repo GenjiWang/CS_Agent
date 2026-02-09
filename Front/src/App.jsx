@@ -75,7 +75,7 @@ export default function App() {
     }, [messages])
 
     // build ws url (local dev)
-    const wsUrl = (window.location.protocol === 'https:' ? 'wss' : 'ws') + '://127.0.0.1:8000/ws/chat'
+    const wsUrl = (window.location.protocol === 'https:' ? 'wss' : 'ws') + '://100.111.80.10:8000/ws/chat'
 
     const connectWs = useCallback((url = wsUrl) => {
         const existing = wsRef.current

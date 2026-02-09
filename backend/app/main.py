@@ -6,8 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware
 import httpx
 import logging
 
-from .routers.ws import router as ws_router
-from .config import settings
+from app.routers.ws import router as ws_router
+
+from app.config import settings
 
 # Configure logging
 logging.basicConfig(
